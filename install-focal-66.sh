@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # install-focal-66.sh — install the locally-built php7.2 -66+focal11 debs on a
 # focal (20.04) box, matching exactly the packages already installed there.
-# Based on the exact flow proven on ca-vs-web-worker-04.
+# Based on a tested focal 7.2 deployment flow.
 #
 # Run ON the target focal box, from the directory holding the *.deb files
-# (e.g. the deploy/ folder you scp'd over). Example:
-#     scp deploy/*.deb panagos@ca-vs-web-master:/tmp/php66/
-#     ssh panagos@ca-vs-web-master
+# (e.g. the deploy/ folder you copied over). Example:
+#     scp deploy/*.deb user@focal-host:/tmp/php66/
+#     ssh user@focal-host
 #     cd /tmp/php66 && bash install-focal-66.sh
 #
 # What it does, in order:
 #   1. sanity checks (focal, debs present, is a sury-7.2 box below -66)
 #   2. installs ONLY the -66 builds of php7.2 packages already installed
 #   3. restarts apache (and php7.2-fpm if active)
-#   4. holds the packages so apt won't revert them to focal's -43
+#   4. holds the packages so apt won't revert them to focal's older build
 #   5. verifies: version string, changelog CVE, extensions still load
 #
 # It does NOT change memory_limit or app config, and does NOT autoremove.
-# SNAPSHOT THE VM FIRST (Proxmox) — this is your rollback.
+# SNAPSHOT THE VM FIRST — this is your rollback.
 set -uo pipefail
 
 DEBDIR="${1:-$PWD}"
@@ -33,7 +33,7 @@ SUDO="${SUDO:-}"
 [[ "${VERSION_CODENAME:-}" == "focal" ]] || die "not a focal (20.04) box — codename='${VERSION_CODENAME:-unknown}'. These debs are built for focal only."
 
 cd "$DEBDIR" || die "cannot cd to $DEBDIR"
-ls *"$VER_TAG"*.deb >/dev/null 2>&1 || die "no *${VER_TAG}*.deb files in $DEBDIR. scp the deploy/ debs here first."
+ls *"$VER_TAG"*.deb >/dev/null 2>&1 || die "no *${VER_TAG}*.deb files in $DEBDIR. Copy the deploy/ debs here first."
 
 cur="$(dpkg-query -W -f='${Version}' php7.2-common 2>/dev/null || true)"
 [[ -n "$cur" ]] || die "php7.2-common not installed here — is this the right box? (expected a sury 7.2 focal box)"
@@ -74,8 +74,8 @@ $SUDO apt-get install -y "${LIST[@]}" || die "apt install failed — review outp
 if systemctl is-active --quiet apache2 2>/dev/null; then say "restarting apache2"; $SUDO systemctl restart apache2; fi
 if systemctl is-active --quiet php7.2-fpm 2>/dev/null; then say "restarting php7.2-fpm"; $SUDO systemctl restart php7.2-fpm; fi
 
-# --- 5. hold so apt can't downgrade to focal's -43 --------------------------
-say "holding php7.2 packages (focal PPA only has -43; hold prevents silent downgrade)"
+# --- 5. hold so apt can't downgrade to focal's older build ------------------
+say "holding php7.2 packages (the focal PPA only has an older build; hold prevents silent downgrade)"
 $SUDO apt-mark hold "${PKGS[@]}" >/dev/null
 echo "   held: ${PKGS[*]}"
 
