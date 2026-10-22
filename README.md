@@ -110,8 +110,8 @@ done
 **Snapshot the VM first** (your rollback). Then:
 
 ```bash
-scp deploy/*.deb install-focal-66.sh panagos@HOST:/tmp/php66/
-ssh panagos@HOST 'cd /tmp/php66 && bash install-focal-66.sh .'
+scp deploy/*.deb install-focal-66.sh user@HOST:/tmp/php66/
+ssh user@HOST 'cd /tmp/php66 && bash install-focal-66.sh .'
 ```
 
 `install-focal-66.sh`:
